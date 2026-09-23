@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Presensi Online MTs Buninagara</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- JsBarcode for Barcode Generation -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+    <!-- HTML5 QRCode Scanner -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <!-- SheetJS for Excel Upload & Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- jsPDF & AutoTable for Report Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Login Screen -->
+    <div id="loginSection" class="fixed inset-0 z-40 bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-900 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transition-all transform duration-300">
+            <div class="p-8 text-center bg-emerald-50/50 border-b border-emerald-100">
+                <div class="w-24 h-24 mx-auto mb-3 rounded-full bg-white shadow-md p-2 flex items-center justify-center border-2 border-emerald-500">
+                    <img id="loginLogo" src="https://placehold.co/120x120/16a34a/ffffff?text=MTS+BUNINAGARA" alt="Logo MTs Buninagara" class="w-full h-full object-contain rounded-full">
+                </div>
+                <h1 class="text-xl font-bold text-slate-800">MTs BUNINAGARA</h1>
+                <p class="text-xs text-emerald-700 font-medium mt-1">Sistem Presensi Online Siswa</p>
+            </div>
+
+            <div class="p-6 sm:p-8">
+                <!-- Role Toggle Tabs -->
+                <div class="flex p-1 bg-slate-100 rounded-xl mb-6">
+                    <button id="tabBtnAdmin" onclick="switchLoginTab('admin')" class="flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all bg-emerald-600 text-white shadow-sm">
+                        <i class="fa-solid fa-user-shield mr-1"></i> Admin
+                    </button>
+                    <button id="tabBtnGuru" onclick="switchLoginTab('guru')" class="flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all">
+                        <i class="fa-solid fa-chalkboard-user mr-1"></i> Guru Mapel
+                    </button>
+                </div>
+
+                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Username / NIP</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input type="text" id="loginUsername" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:bg-white transition-all" placeholder="Masukkan username">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input type="password" id="loginPassword" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:bg-white transition-all" placeholder="Masukkan password">
+                        </div>
+                    </div>
+
+                    <div id="loginHint" class="p-3 bg-emerald-50 rounded-lg text-xs text-emerald-800 border border-emerald-200">
+                        <span class="font-bold">Info Demo Admin:</span><br>
+                        User: <code class="bg-white px-1.5 py-0.5 rounded border border-emerald-300 font-mono">MTsbuninagara</code><br>
+                        Pass: <code class="bg-white px-1.5 py-0.5 rounded border border-emerald-300 font-mono">Dadan.123</code>
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                        <span>Masuk ke Sistem</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container (Hidden before login) -->
+    <div id="appContainer" class="hidden flex-1 flex flex-col md:flex-row min-h-screen">
+        
+        <!-- Sidebar Navigation (Desktop) -->
+        <aside class="hidden md:flex flex-col w-64 bg-slate-900 text-white border-r border-slate-800 shrink-0">
+            <div class="p-5 border-b border-slate-800 flex items-center gap-3">
+                <img id="appLogoSidebar" src="https://placehold.co/120x120/16a34a/ffffff?text=MTS" alt="Logo" class="w-10 h-10 rounded-lg object-contain bg-white p-1">
+                <div class="overflow-hidden">
+                    <h2 class="font-bold text-sm tracking-wide text-white truncate">MTs BUNINAGARA</h2>
+                    <p class="text-[10px] text-emerald-400 truncate">Presensi Online Siswa</p>
+                </div>
+            </div>
+
+            <!-- User Badge -->
+            <div class="p-4 mx-3 my-3 bg-slate-800/80 rounded-xl border border-slate-700/50 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0" id="userAvatar">
+                    A
+                </div>
+                <div class="overflow-hidden">
+                    <div id="userDisplayName" class="text-xs font-semibold text-white truncate">Administrator</div>
+                    <div id="userDisplayRole" class="text-[10px] text-slate-400 uppercase tracking-wider">Super Admin</div>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="flex-1 px-3 py-2 space-y-1 overflow-y-auto hide-scrollbar" id="desktopNavLinks">
+                <!-- Nav items generated via JS -->
+            </nav>
+
+            <div class="p-4 border-t border-slate-800">
+                <button onclick="handleLogout()" class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-rose-400 hover:bg-rose-950/40 rounded-xl transition-all">
+                    <i class="fa-solid fa-right-from-bracket text-base"></i>
+                    <span>Keluar / Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            
+            <!-- Top Bar Mobile -->
+            <header class="bg-slate-900 text-white p-4 flex items-center justify-between md:hidden shadow-md">
+                <div class="flex items-center gap-3">
+                    <img id="appLogoHeader" src="https://placehold.co/120x120/16a34a/ffffff?text=MTS" alt="Logo" class="w-8 h-8 rounded-lg object-contain bg-white p-0.5">
+                    <div>
+                        <h1 class="font-bold text-sm">MTs BUNINAGARA</h1>
+                        <p id="mobileHeaderUser" class="text-[10px] text-emerald-400">Presensi Online</p>
+                    </div>
+                </div>
+                <button onclick="handleLogout()" class="p-2 text-rose-400 hover:text-rose-300">
+                    <i class="fa-solid fa-right-from-bracket text-lg"></i>
+                </button>
+            </header>
+
+            <!-- Dynamic Body View Container -->
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50 pb-24 md:pb-8" id="mainContentView">
+                <!-- Dynamic view injects here -->
+            </main>
+
+            <!-- Bottom Navigation Bar (Mobile Only) -->
+            <nav id="mobileBottomNav" class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 px-2 py-1.5 flex justify-around items-center z-30 shadow-lg">
+                <!-- Items populated via JS -->
+            </nav>
+
+        </div>
+    </div>
+
+    <!-- Modal Container for Dynamic Dialogs -->
+    <div id="modalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div id="modalCard" class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden transform transition-all duration-200">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <h3 id="modalTitle" class="font-bold text-slate-800 text-base">Modal Title</h3>
+                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <div id="modalBody" class="p-6 overflow-y-auto flex-1">
+                <!-- Content injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default Storage State Initialization
+        const APP_TITLE = "MTs BUNINAGARA";
+        let currentUser = null; // { role: 'admin'|'guru', username: '', name: '', nip: '', mapel: '' }
+        let currentView = 'dashboard';
+
+        // Initial Mock Data
+        let appData = {
+            logo: "https://placehold.co/120x120/16a34a/ffffff?text=MTS+BUNINAGARA",
+            teachers: [
+                { id: "G001", name: "Dadan Ramdani, S.Pd.", nip: "198501122010011002", mapel: "Matematika", kelas: "7A, 8A, 9A" },
+                { id: "G002", name: "Siti Nurjanah, S.Ag.", nip: "198804152012022001", mapel: "Bahasa Arab", kelas: "7A, 7B, 8A" },
+                { id: "G003", name: "Ahmad Fauzi, M.Pd.", nip: "199002202015031004", mapel: "IPA Terpadu", kelas: "8A, 8B, 9B" }
+            ],
+            accounts: [
+                { id: "ACC-G001", teacherId: "G001", username: "dadan", password: "123", teacherName: "Dadan Ramdani, S.Pd.", mapel: "Matematika" },
+                { id: "ACC-G002", teacherId: "G002", username: "siti", password: "123", teacherName: "Siti Nurjanah, S.Ag.", mapel: "Bahasa Arab" }
+            ],
+            students: [
+                { nis: "1001", name: "Ahmad Saepullah", class: "7A", gender: "L" },
+                { nis: "1002", name: "Anisa Fitriani", class: "7A", gender: "P" },
+                { nis: "1003", name: "Budi Santoso", class: "7A", gender: "L" },
+                { nis: "1004", name: "Dewi Kurnia", class: "8A", gender: "P" },
+                { nis: "1005", name: "Faris Abdul", class: "8A", gender: "L" },
+                { nis: "1006", name: "Gita Lestari", class: "9A", gender: "P" }
+            ],
+            attendance: [
+                // { id, date, nis, studentName, class, mapel, teacherName, status: 'H'|'I'|'S'|'A', time }
+                { id: '1', date: new Date().toISOString().split('T')[0], nis: "1001", studentName: "Ahmad Saepullah", class: "7A", mapel: "Matematika", teacherName: "Dadan Ramdani, S.Pd.", status: "H", time: "07:15" },
+                { id: '2', date: new Date().toISOString().split('T')[0], nis: "1002", studentName: "Anisa Fitriani", class: "7A", mapel: "Matematika", teacherName: "Dadan Ramdani, S.Pd.", status: "H", time: "07:18" }
+            ]
+        };
+
+        // Load saved state from LocalStorage if exists
+        function loadSavedData() {
+            const saved = localStorage.getItem("mts_buninagara_app_data");
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    appData = { ...appData, ...parsed };
+                } catch(e) {
+                    console.error("Failed to parse saved data", e);
+                }
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem("mts_buninagara_app_data", JSON.stringify(appData));
+        }
+
+        // Toast Helper
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const bgColor = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-rose-600' : 'bg-slate-800';
+            const icon = type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-xmark' : 'fa-circle-info';
+            
+            toast.className = `${bgColor} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 text-xs sm:text-sm font-medium transform transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        let loginRole = 'admin';
+
+        function switchLoginTab(role) {
+            loginRole = role;
+            const btnAdmin = document.getElementById('tabBtnAdmin');
+            const btnGuru = document.getElementById('tabBtnGuru');
+            const hint = document.getElementById('loginHint');
+
+            if (role === 'admin') {
+                btnAdmin.className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all bg-emerald-600 text-white shadow-sm";
+                btnGuru.className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+                hint.innerHTML = `<span class="font-bold">Info Demo Admin:</span><br>User: <code class="bg-white px-1.5 py-0.5 rounded border border-emerald-300 font-mono">MTsbuninagara</code><br>Pass: <code class="bg-white px-1.5 py-0.5 rounded border border-emerald-300 font-mono">Dadan.123</code>`;
+            } else {
+                btnGuru.className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all bg-emerald-600 text-white shadow-sm";
+                btnAdmin.className = "flex-1 py-2 text-xs sm:text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+                hint.innerHTML = `<span class="font-bold">Info Guru Mapel:</span><br>Gunakan akun yang di-generate oleh Admin di menu <b>Manajemen Akun</b>. (E.g. dadan / 123)`;
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUsername').value.trim();
+            const p = document.getElementById('loginPassword').value.trim();
+
+            if (loginRole === 'admin') {
+                if (u === 'MTsbuninagara' && p === 'Dadan.123') {
+                    currentUser = {
+                        role: 'admin',
+                        username: u,
+                        name: 'Administrator MTs',
+                        nip: 'ADMIN-BUNINAGARA'
+                    };
+                    initAppSession();
+                    showToast('Selamat datang, Admin MTs Buninagara!');
+                } else {
+                    showToast('Username atau password Admin salah!', 'error');
+                }
+            } else {
+                const foundAcc = appData.accounts.find(a => a.username.toLowerCase() === u.toLowerCase() && a.password === p);
+                if (foundAcc) {
+                    const teacher = appData.teachers.find(t => t.id === foundAcc.teacherId);
+                    currentUser = {
+                        role: 'guru',
+                        username: foundAcc.username,
+                        name: foundAcc.teacherName,
+                        mapel: foundAcc.mapel,
+                        teacherId: foundAcc.teacherId,
+                        nip: teacher ? teacher.nip : '-'
+                    };
+                    initAppSession();
+                    showToast(`Selamat datang, Bpk/Ibu ${currentUser.name}!`);
+                } else {
+                    showToast('Akun Guru tidak ditemukan atau password salah!', 'error');
+                }
+            }
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            if (html5QrcodeScanner) {
+                try { html5QrcodeScanner.stop(); } catch(e){}
+            }
+            document.getElementById('appContainer').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('loginForm').reset();
+            showToast('Berhasil keluar dari akun.', 'info');
+        }
+
+        function initAppSession() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('appContainer').classList.remove('hidden');
+
+            // Update UI elements
+            document.getElementById('userDisplayName').innerText = currentUser.name;
+            document.getElementById('userDisplayRole').innerText = currentUser.role === 'admin' ? 'SUPER ADMIN' : `GURU: ${currentUser.mapel}`;
+            document.getElementById('userAvatar').innerText = currentUser.name.charAt(0);
+            document.getElementById('mobileHeaderUser').innerText = currentUser.name;
+
+            // Apply custom logos
+            if (appData.logo) {
+                document.getElementById('loginLogo').src = appData.logo;
+                document.getElementById('appLogoSidebar').src = appData.logo;
+                document.getElementById('appLogoHeader').src = appData.logo;
+            }
+
+            renderNavLinks();
+            navigateTo(currentUser.role === 'admin' ? 'dashboard' : 'scan');
+        }
+
+        function renderNavLinks() {
+            const desktopNav = document.getElementById('desktopNavLinks');
+            const mobileNav = document.getElementById('mobileBottomNav');
+
+            let navItems = [];
+
+            if (currentUser.role === 'admin') {
+                navItems = [
+                    { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-pie' },
+                    { id: 'guru', label: 'Data Guru', icon: 'fa-chalkboard-user' },
+                    { id: 'akun', label: 'Manajemen Akun', icon: 'fa-users-gear' },
+                    { id: 'siswa', label: 'Data Siswa', icon: 'fa-user-graduate' },
+                    { id: 'scan', label: 'Presensi Scan', icon: 'fa-qrcode' },
+                    { id: 'rekap', label: 'Rekap Absensi', icon: 'fa-file-invoice' },
+                    { id: 'pengaturan', label: 'Pengaturan', icon: 'fa-sliders' }
+                ];
+            } else { // Guru
+                navItems = [
+                    { id: 'scan', label: 'Absensi Scan', icon: 'fa-qrcode' },
+                    { id: 'rekap', label: 'Rekap Absensi', icon: 'fa-file-invoice' },
+                    { id: 'siswa', label: 'Data Siswa', icon: 'fa-user-graduate' },
+                    { id: 'pengaturan', label: 'Pengaturan', icon: 'fa-sliders' }
+                ];
+            }
+
+            // Desktop Nav HTML
+            desktopNav.innerHTML = navItems.map(item => `
+                <button onclick="navigateTo('${item.id}')" id="deskNav-${item.id}" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${currentView === item.id ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}">
+                    <i class="fa-solid ${item.icon} text-sm w-5 text-center"></i>
+                    <span>${item.label}</span>
+                </button>
+            `).join('');
+
+            // Mobile Nav HTML (Show max 5)
+            mobileNav.innerHTML = navItems.slice(0, 5).map(item => `
+                <button onclick="navigateTo('${item.id}')" id="mobNav-${item.id}" class="flex flex-col items-center py-1 px-2 rounded-lg transition-all ${currentView === item.id ? 'text-emerald-600 font-bold' : 'text-slate-400 font-medium'}">
+                    <i class="fa-solid ${item.icon} text-lg"></i>
+                    <span class="text-[10px] mt-0.5">${item.label}</span>
+                </button>
+            `).join('');
+        }
+
+        function navigateTo(view) {
+            currentView = view;
+            renderNavLinks();
+
+            // Stop camera if navigating away from scan
+            if (view !== 'scan' && html5QrcodeScanner) {
+                try { html5QrcodeScanner.stop(); } catch(e){}
+            }
+
+            const main = document.getElementById('mainContentView');
+            switch (view) {
+                case 'dashboard':
+                    renderDashboardView(main);
+                    break;
+                case 'guru':
+                    renderGuruView(main);
+                    break;
+                case 'akun':
+                    renderAkunView(main);
+                    break;
+                case 'siswa':
+                    renderSiswaView(main);
+                    break;
+                case 'scan':
+                    renderScanView(main);
+                    break;
+                case 'rekap':
+                    renderRekapView(main);
+                    break;
+                case 'pengaturan':
+                    renderPengaturanView(main);
+                    break;
+                default:
+                    main.innerHTML = `<p>View tidak ditemukan</p>`;
+            }
+        }
+
+        function renderDashboardView(container) {
+            const today = new Date().toISOString().split('T')[0];
+            const todayLogs = appData.attendance.filter(a => a.date === today);
+
+            const hadirCount = todayLogs.filter(a => a.status === 'H').length;
+            const izinCount = todayLogs.filter(a => a.status === 'I').length;
+            const sakitCount = todayLogs.filter(a => a.status === 'S').length;
+            const alpaCount = todayLogs.filter(a => a.status === 'A').length;
+
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <!-- Welcome Banner -->
+                    <div class="bg-gradient-to-r from-emerald-700 to-teal-800 text-white rounded-2xl p-6 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="space-y-1 text-center md:text-left">
+                            <span class="bg-emerald-500/30 text-emerald-200 text-xs px-2.5 py-1 rounded-full font-semibold border border-emerald-400/30">
+                                MTs BUNINAGARA ONLINE
+                            </span>
+                            <h2 class="text-xl sm:text-2xl font-bold mt-2">Selamat Datang di Sistem Presensi</h2>
+                            <p class="text-xs sm:text-sm text-emerald-100/80">Kelola data presensi harian siswa dengan pemindaian Barcode/QR cepat.</p>
+                        </div>
+                        <button onclick="navigateTo('scan')" class="px-5 py-3 bg-white text-emerald-800 hover:bg-emerald-50 font-bold rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 shrink-0">
+                            <i class="fa-solid fa-qrcode text-base"></i>
+                            <span>Buka Scanner Presensi</span>
+                        </button>
+                    </div>
+
+                    <!-- Statistics Cards -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+                                <i class="fa-solid fa-user-graduate"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-500 font-medium">Total Siswa</p>
+                                <h3 class="text-xl font-bold text-slate-800">${appData.students.length}</h3>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                                <i class="fa-solid fa-chalkboard-user"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-500 font-medium">Total Guru</p>
+                                <h3 class="text-xl font-bold text-slate-800">${appData.teachers.length}</h3>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
+                                <i class="fa-solid fa-clipboard-check"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-500 font-medium">Hadir Hari Ini</p>
+                                <h3 class="text-xl font-bold text-slate-800">${hadirCount}</h3>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+                                <i class="fa-solid fa-file-invoice"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-500 font-medium">Izin / Sakit / Alpa</p>
+                                <h3 class="text-xl font-bold text-slate-800">${izinCount + sakitCount + alpaCount}</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity Table -->
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-bold text-slate-800 text-sm sm:text-base flex items-center gap-2">
+                                <i class="fa-solid fa-clock-rotate-left text-emerald-600"></i>
+                                Presensi Terakhir Hari Ini (${today})
+                            </h3>
+                            <button onclick="navigateTo('rekap')" class="text-xs text-emerald-600 hover:text-emerald-700 font-semibold">Lihat Semua Log &rarr;</button>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                                        <th class="p-3">NIS</th>
+                                        <th class="p-3">Nama Siswa</th>
+                                        <th class="p-3">Kelas</th>
+                                        <th class="p-3">Mata Pelajaran</th>
+                                        <th class="p-3">Waktu</th>
+                                        <th class="p-3 text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-xs">
+                                    ${todayLogs.length === 0 ? `
+                                        <tr>
+                                            <td colspan="6" class="p-6 text-center text-slate-400 italic">Belum ada presensi tercatat hari ini.</td>
+                                        </tr>
+                                    ` : todayLogs.map(log => `
+                                        <tr class="hover:bg-slate-50/80 transition-all">
+                                            <td class="p-3 font-mono font-medium text-slate-600">${log.nis}</td>
+                                            <td class="p-3 font-semibold text-slate-800">${log.studentName}</td>
+                                            <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold">${log.class}</span></td>
+                                            <td class="p-3 text-slate-600">${log.mapel}</td>
+                                            <td class="p-3 text-slate-500 font-mono text-[11px]">${log.time}</td>
+                                            <td class="p-3 text-center">
+                                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${getStatusBadgeClass(log.status)}">
+                                                    ${getStatusLabel(log.status)}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderGuruView(container) {
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800">Data Guru & Mapel Diampu</h2>
+                            <p class="text-xs text-slate-500">Kelola informasi pengajar dan mata pelajaran MTs Buninagara.</p>
+                        </div>
+                        <button onclick="openTeacherModal()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm flex items-center gap-2 self-start sm:self-auto">
+                            <i class="fa-solid fa-user-plus"></i>
+                            <span>Tambah Data Guru</span>
+                        </button>
+                    </div>
+
+                    <!-- Teacher Table -->
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                            <input type="text" id="searchGuruInput" onkeyup="filterGuruTable()" placeholder="Cari nama guru / NIP / mapel..." class="w-full sm:w-72 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse" id="guruTable">
+                                <thead>
+                                    <tr class="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                                        <th class="p-3.5">ID / NIP</th>
+                                        <th class="p-3.5">Nama Guru</th>
+                                        <th class="p-3.5">Mata Pelajaran</th>
+                                        <th class="p-3.5">Kelas Diampu</th>
+                                        <th class="p-3.5 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-xs">
+                                    ${appData.teachers.map(g => `
+                                        <tr class="hover:bg-slate-50/80 transition-all">
+                                            <td class="p-3.5 font-mono text-slate-500">${g.nip || g.id}</td>
+                                            <td class="p-3.5 font-bold text-slate-800">${g.name}</td>
+                                            <td class="p-3.5"><span class="px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg font-semibold">${g.mapel}</span></td>
+                                            <td class="p-3.5 text-slate-600">${g.kelas || '-'}</td>
+                                            <td class="p-3.5 text-right space-x-1">
+                                                <button onclick="openTeacherModal('${g.id}')" class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Edit">
+                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                </button>
+                                                <button onclick="deleteTeacher('${g.id}')" class="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Hapus">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function filterGuruTable() {
+            const query = document.getElementById('searchGuruInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#guruTable tbody tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        function openTeacherModal(teacherId = null) {
+            const isEdit = !!teacherId;
+            const teacher = isEdit ? appData.teachers.find(t => t.id === teacherId) : { name: '', nip: '', mapel: '', kelas: '' };
+
+            document.getElementById('modalTitle').innerText = isEdit ? 'Edit Data Guru' : 'Tambah Data Guru';
+            document.getElementById('modalBody').innerHTML = `
+                <form onsubmit="saveTeacher(event, '${teacherId || ''}')" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap & Gelar</label>
+                        <input type="text" id="modalGuruName" required value="${teacher.name}" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500" placeholder="e.g. Ahmad Fauzi, S.Pd.">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">NIP / NUPTK</label>
+                        <input type="text" id="modalGuruNip" required value="${teacher.nip}" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500" placeholder="e.g. 199002202015031004">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Mata Pelajaran (Mapel)</label>
+                        <input type="text" id="modalGuruMapel" required value="${teacher.mapel}" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500" placeholder="e.g. Bahasa Indonesia">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Kelas Diampu</label>
+                        <input type="text" id="modalGuruKelas" value="${teacher.kelas}" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500" placeholder="e.g. 7A, 7B, 8A">
+                    </div>
+                    <div class="pt-4 flex justify-end gap-2">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl text-xs">Batal</button>
+                        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs shadow-md">Simpan Data</button>
+                    </div>
+                </form>
+            `;
+            openModal();
+        }
+
+        function saveTeacher(e, id) {
+            e.preventDefault();
+            const name = document.getElementById('modalGuruName').value.trim();
+            const nip = document.getElementById('modalGuruNip').value.trim();
+            const mapel = document.getElementById('modalGuruMapel').value.trim();
+            const kelas = document.getElementById('modalGuruKelas').value.trim();
+
+            if (id) {
+                const idx = appData.teachers.findIndex(t => t.id === id);
+                if (idx !== -1) {
+                    appData.teachers[idx] = { ...appData.teachers[idx], name, nip, mapel, kelas };
+                    showToast('Data guru berhasil diperbarui');
+                }
+            } else {
+                const newId = 'G' + String(appData.teachers.length + 1).padStart(3, '0');
+                appData.teachers.push({ id: newId, name, nip, mapel, kelas });
+                showToast('Guru baru berhasil ditambahkan');
+            }
+            saveData();
+            closeModal();
+            renderGuruView(document.getElementById('mainContentView'));
+        }
+
+        function deleteTeacher(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus data guru ini?')) {
+                appData.teachers = appData.teachers.filter(t => t.id !== id);
+                saveData();
+                showToast('Data guru dihapus');
+                renderGuruView(document.getElementById('mainContentView'));
+            }
+        }
+
+        function renderAkunView(container) {
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800">Manajemen Akun Guru</h2>
+                            <p class="text-xs text-slate-500">Generate dan kelola credential akun login untuk masing-masing guru.</p>
+                        </div>
+                        <button onclick="openGenerateAccountModal()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm flex items-center gap-2 self-start sm:self-auto">
+                            <i class="fa-solid fa-key"></i>
+                            <span>Generate Akun Guru</span>
+                        </button>
+                    </div>
+
+                    <!-- Accounts List Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${appData.accounts.map(acc => `
+                            <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-3 relative overflow-hidden">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-sm">
+                                        <i class="fa-solid fa-chalkboard-user"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-slate-800 text-sm leading-tight">${acc.teacherName}</h4>
+                                        <p class="text-[11px] text-emerald-600 font-medium">${acc.mapel}</p>
+                                    </div>
+                                </div>
+
+                                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1.5 text-xs font-mono">
+                                    <div class="flex justify-between">
+                                        <span class="text-slate-400 font-sans">Username:</span>
+                                        <span class="font-bold text-slate-700">${acc.username}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-slate-400 font-sans">Password:</span>
+                                        <span class="font-bold text-slate-700">${acc.password}</span>
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                                    <button onclick="deleteAccount('${acc.id}')" class="text-xs px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg font-semibold transition-all">
+                                        <i class="fa-solid fa-trash-can mr-1"></i> Hapus Akun
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function openGenerateAccountModal() {
+            // Find teachers who don't have an account yet
+            const teachersWithoutAcc = appData.teachers.filter(t => !appData.accounts.some(a => a.teacherId === t.id));
+
+            document.getElementById('modalTitle').innerText = 'Generate Akun Login Guru';
+            document.getElementById('modalBody').innerHTML = `
+                <form onsubmit="saveGeneratedAccount(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Guru</label>
+                        <select id="modalAccTeacherSelect" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+                            <option value="">-- Pilih Guru --</option>
+                            ${appData.teachers.map(t => `<option value="${t.id}">${t.name} (${t.mapel})</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Username Login</label>
+                        <input type="text" id="modalAccUsername" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500" placeholder="e.g. dadan">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Password Login</label>
+                        <input type="text" id="modalAccPassword" required value="123456" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div class="pt-4 flex justify-end gap-2">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs">Batal</button>
+                        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs shadow-md">Generate Akun</button>
+                    </div>
+                </form>
+            `;
+            openModal();
+        }
+
+        function saveGeneratedAccount(e) {
+            e.preventDefault();
+            const teacherId = document.getElementById('modalAccTeacherSelect').value;
+            const username = document.getElementById('modalAccUsername').value.trim();
+            const password = document.getElementById('modalAccPassword').value.trim();
+
+            const teacher = appData.teachers.find(t => t.id === teacherId);
+            if (!teacher) return;
+
+            // Check if account for this teacher exists
+            const existing = appData.accounts.find(a => a.teacherId === teacherId);
+            if (existing) {
+                existing.username = username;
+                existing.password = password;
+                showToast(`Akun untuk ${teacher.name} diperbarui!`);
+            } else {
+                appData.accounts.push({
+                    id: 'ACC-' + Date.now(),
+                    teacherId: teacher.id,
+                    teacherName: teacher.name,
+                    mapel: teacher.mapel,
+                    username,
+                    password
+                });
+                showToast(`Akun baru untuk ${teacher.name} berhasil dibuat!`);
+            }
+
+            saveData();
+            closeModal();
+            renderAkunView(document.getElementById('mainContentView'));
+        }
+
+        function deleteAccount(id) {
+            if (confirm('Hapus akun guru ini? Guru tidak akan bisa login lagi.')) {
+                appData.accounts = appData.accounts.filter(a => a.id !== id);
+                saveData();
+                showToast('Akun guru dihapus.');
+                renderAkunView(document.getElementById('mainContentView'));
+            }
+        }
+
+        function renderSiswaView(container) {
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800">Data Siswa</h2>
+                            <p class="text-xs text-slate-500">Kelola data siswa, impor file Excel, dan cetak ID siswa.</p>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button onclick="openExcelUploadModal()" class="px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-xl text-xs font-semibold transition-all flex items-center gap-2">
+                                <i class="fa-solid fa-file-excel text-emerald-600 text-base"></i>
+                                <span>Upload Excel</span>
+                            </button>
+                            <button onclick="openStudentModal()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2">
+                                <i class="fa-solid fa-user-plus"></i>
+                                <span>Tambah Siswa</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Students Table Container -->
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row gap-3 justify-between items-center">
+                            <input type="text" id="searchSiswaInput" onkeyup="filterSiswaTable()" placeholder="Cari NIS, Nama, atau Kelas..." class="w-full sm:w-72 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+                            
+                            <select id="filterClassSelect" onchange="filterSiswaTable()" class="w-full sm:w-48 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+                                <option value="">Semua Kelas</option>
+                                <option value="7A">Kelas 7A</option>
+                                <option value="7B">Kelas 7B</option>
+                                <option value="8A">Kelas 8A</option>
+                                <option value="8B">Kelas 8B</option>
+                                <option value="9A">Kelas 9A</option>
+                                <option value="9B">Kelas 9B</option>
+                            </select>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse" id="siswaTable">
+                                <thead>
+                                    <tr class="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                                        <th class="p-3.5">NIS</th>
+                                        <th class="p-3.5">Nama Siswa</th>
+                                        <th class="p-3.5">Kelas</th>
+                                        <th class="p-3.5">L/P</th>
+                                        <th class="p-3.5 text-center">Barcode</th>
+                                        <th class="p-3.5 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-xs">
+                                    ${appData.students.map(s => `
+                                        <tr class="hover:bg-slate-50/80 transition-all">
+                                            <td class="p-3.5 font-mono font-bold text-slate-700">${s.nis}</td>
+                                            <td class="p-3.5 font-bold text-slate-800">${s.name}</td>
+                                            <td class="p-3.5"><span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold">${s.class}</span></td>
+                                            <td class="p-3.5 text-slate-500 font-medium">${s.gender}</td>
+                                            <td class="p-3.5 text-center">
+                                                <button onclick="viewStudentBarcode('${s.nis}')" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition-all inline-flex items-center gap-1.5">
+                                                    <i class="fa-solid fa-barcode"></i>
+                                                    <span>Lihat Card</span>
+                                                </button>
+                                            </td>
+                                            <td class="p-3.5 text-right space-x-1">
+                                                <button onclick="openStudentModal('${s.nis}')" class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Edit">
+                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                </button>
+                                                <button onclick="deleteStudent('${s.nis}')" class="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Hapus">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function filterSiswaTable() {
+            const query = document.getElementById('searchSiswaInput').value.toLowerCase();
+            const cls = document.getElementById('filterClassSelect').value;
+            const rows = document.querySelectorAll('#siswaTable tbody tr');
+
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                const matchesSearch = text.includes(query);
+                const matchesClass = cls === '' || text.includes(cls.toLowerCase());
+                row.style.display = (matchesSearch && matchesClass) ? '' : 'none';
+            });
+        }
+
+        function openStudentModal(nis = null) {
+            const isEdit = !!nis;
+            const student = isEdit ? appData.students.find(s => s.nis === nis) : { nis: '', name: '', class: '7A', gender: 'L' };
+
+            document.getElementById('modalTitle').innerText = isEdit ? 'Edit Data Siswa' : 'Tambah Data Siswa Baru';
+            document.getElementById('modalBody').innerHTML = `
+                <form onsubmit="saveStudent(event, '${nis || ''}')" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Induk Siswa (NIS)</label>
+                        <input type="text" id="modalSiswaNis" required ${isEdit ? 'readonly class="w-full px-3 py-2 bg-slate-100 text-slate-500 border border-slate-200 rounded-xl text-xs font-mono"' : 'class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-emerald-500"'} value="${student.nis}" placeholder="e.g. 1007">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap Siswa</label>
+                        <input type="text" id="modalSiswaName" required value="${student.name}" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500" placeholder="e.g. Muhammad Ali">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Kelas</label>
+                            <select id="modalSiswaClass" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+                                <option value="7A" ${student.class === '7A' ? 'selected' : ''}>7A</option>
+                                <option value="7B" ${student.class === '7B' ? 'selected' : ''}>7B</option>
+                                <option value="8A" ${student.class === '8A' ? 'selected' : ''}>8A</option>
+                                <option value="8B" ${student.class === '8B' ? 'selected' : ''}>8B</option>
+                                <option value="9A" ${student.class === '9A' ? 'selected' : ''}>9A</option>
+                                <option value="9B" ${student.class === '9B' ? 'selected' : ''}>9B</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Kelamin</label>
+                            <select id="modalSiswaGender" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+                                <option value="L" ${student.gender === 'L' ? 'selected' : ''}>Laki-laki (L)</option>
+                                <option value="P" ${student.gender === 'P' ? 'selected' : ''}>Perempuan (P)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 flex justify-end gap-2">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs">Batal</button>
+                        <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs shadow-md">Simpan Data Siswa</button>
+                    </div>
+                </form>
+            `;
+            openModal();
+        }
+
+        function saveStudent(e, oldNis) {
+            e.preventDefault();
+            const nis = document.getElementById('modalSiswaNis').value.trim();
+            const name = document.getElementById('modalSiswaName').value.trim();
+            const cls = document.getElementById('modalSiswaClass').value;
+            const gender = document.getElementById('modalSiswaGender').value;
+
+            if (oldNis) {
+                const idx = appData.students.findIndex(s => s.nis === oldNis);
+                if (idx !== -1) {
+                    appData.students[idx] = { nis, name, class: cls, gender };
+                    showToast('Data siswa berhasil diperbarui');
+                }
+            } else {
+                if (appData.students.some(s => s.nis === nis)) {
+                    showToast('NIS sudah terdaftar!', 'error');
+                    return;
+                }
+                appData.students.push({ nis, name, class: cls, gender });
+                showToast('Siswa baru berhasil ditambahkan');
+            }
+            saveData();
+            closeModal();
+            renderSiswaView(document.getElementById('mainContentView'));
+        }
+
+        function deleteStudent(nis) {
+            if (confirm('Hapus data siswa ini?')) {
+                appData.students = appData.students.filter(s => s.nis !== nis);
+                saveData();
+                showToast('Data siswa dihapus');
+                renderSiswaView(document.getElementById('mainContentView'));
+            }
+        }
+
+        function openExcelUploadModal() {
+            document.getElementById('modalTitle').innerText = 'Upload Data Siswa dari Excel';
+            document.getElementById('modalBody').innerHTML = `
+                <div class="space-y-4">
+                    <p class="text-xs text-slate-600">
+                        Unggah file <b>.xlsx</b> atau <b>.xls</b> berisi data siswa dengan format kolom: <br>
+                        <code class="bg-slate-100 px-2 py-1 rounded text-emerald-700 font-bold">NIS | Nama | Kelas | Gender</code>
+                    </p>
+
+                    <div class="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-6 text-center cursor-pointer transition-all bg-slate-50/50" onclick="document.getElementById('excelFileInput').click()">
+                        <i class="fa-solid fa-file-excel text-3xl text-emerald-600 mb-2"></i>
+                        <p class="text-xs font-semibold text-slate-700">Klik di sini untuk memilih file Excel</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Format didukung: .xlsx, .xls</p>
+                        <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
+                    </div>
+
+                    <div id="excelPreviewContainer" class="hidden space-y-2">
+                        <p class="text-xs font-bold text-slate-700">Pratinjau Data Impor:</p>
+                        <div class="max-h-40 overflow-y-auto border border-slate-200 rounded-lg p-2 text-xs bg-slate-50">
+                            <ul id="excelPreviewList" class="space-y-1"></ul>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 flex justify-end gap-2">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs">Tutup</button>
+                    </div>
+                </div>
+            `;
+            openModal();
+        }
+
+        function handleExcelUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (json.length === 0) {
+                        showToast('File Excel kosong!', 'error');
+                        return;
+                    }
+
+                    let addedCount = 0;
+                    json.forEach(row => {
+                        const nis = String(row.NIS || row.nis || '').trim();
+                        const name = String(row.Nama || row.NAMA || row.nama || '').trim();
+                        const cls = String(row.Kelas || row.KELAS || row.kelas || '7A').trim();
+                        const gender = String(row.Gender || row.GENDER || row.gender || 'L').trim().toUpperCase().charAt(0);
+
+                        if (nis && name) {
+                            if (!appData.students.some(s => s.nis === nis)) {
+                                appData.students.push({ nis, name, class: cls, gender });
+                                addedCount++;
+                            }
+                        }
+                    });
+
+                    saveData();
+                    showToast(`Berhasil mengimpor ${addedCount} siswa dari Excel!`);
+                    closeModal();
+                    renderSiswaView(document.getElementById('mainContentView'));
+                } catch(err) {
+                    console.error(err);
+                    showToast('Gagal memproses file Excel!', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function viewStudentBarcode(nis) {
+            const student = appData.students.find(s => s.nis === nis);
+            if (!student) return;
+
+            document.getElementById('modalTitle').innerText = 'Kartu Presensi Siswa';
+            document.getElementById('modalBody').innerHTML = `
+                <div class="text-center space-y-4">
+                    <div id="studentCardPrintArea" class="bg-gradient-to-br from-emerald-800 to-teal-900 text-white rounded-2xl p-6 shadow-xl border-2 border-emerald-500 max-w-sm mx-auto space-y-4">
+                        <div class="flex items-center justify-between border-b border-emerald-600/50 pb-3">
+                            <img src="${appData.logo}" alt="Logo" class="w-8 h-8 rounded bg-white p-0.5 object-contain">
+                            <div class="text-right">
+                                <h4 class="font-bold text-xs">MTs BUNINAGARA</h4>
+                                <p class="text-[9px] text-emerald-200">Kartu Presensi Siswa</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="font-bold text-base leading-tight">${student.name}</h3>
+                            <p class="text-xs text-emerald-200 mt-0.5">NIS: <span class="font-mono font-bold">${student.nis}</span> | Kelas: ${student.class}</p>
+                        </div>
+
+                        <!-- Barcode canvas container -->
+                        <div class="bg-white p-3 rounded-xl shadow-inner flex flex-col items-center justify-center">
+                            <svg id="barcodeCanvas"></svg>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center gap-2 pt-2">
+                        <button onclick="window.print()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-print"></i> Cetak Kartu
+                        </button>
+                    </div>
+                </div>
+            `;
+            openModal();
+
+            // Render Barcode using JsBarcode
+            setTimeout(() => {
+                JsBarcode("#barcodeCanvas", student.nis, {
+                    format: "CODE128",
+                    width: 2,
+                    height: 50,
+                    displayValue: true,
+                    fontSize: 12,
+                    margin: 5
+                });
+            }, 100);
+        }
+
+        let html5QrcodeScanner = null;
+
+        function renderScanView(container) {
+            const today = new Date().toISOString().split('T')[0];
+
+            container.innerHTML = `
+                <div class="space-y-6 max-w-3xl mx-auto">
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                            <div>
+                                <h2 class="text-lg font-bold text-slate-800">Scanner Absensi</h2>
+                                <p class="text-xs text-slate-500">Scan kartu siswa untuk mencatat kehadiran secara otomatis.</p>
+                            </div>
+                            <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold font-mono">
+                                ${today}
+                            </span>
+                        </div>
+
+                        <!-- Config Barcode Session -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Mata Pelajaran</label>
+                                <input type="text" id="scanMapelInput" value="${currentUser.mapel || 'Matematika'}" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Pengajar / Guru</label>
+                                <input type="text" id="scanTeacherInput" value="${currentUser.name || 'Dadan Ramdani, S.Pd.'}" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-emerald-500">
+                            </div>
+                        </div>
+
+                        <!-- Camera Scanner Area -->
+                        <div class="space-y-3">
+                            <div id="reader" class="w-full overflow-hidden rounded-2xl border-2 border-dashed border-emerald-500 bg-slate-900 min-h-[260px] flex items-center justify-center text-white text-xs">
+                                <!-- Scanner renders here -->
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button onclick="startCameraScanner()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-camera"></i> Aktifkan Kamera
+                                </button>
+                                <button onclick="stopCameraScanner()" class="py-2.5 px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-semibold transition-all">
+                                    Stop
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Manual NIS Entry Fallback -->
+                        <div class="pt-2 border-t border-slate-100">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Input NIS Manual:</label>
+                            <form onsubmit="handleManualScan(event)" class="flex gap-2">
+                                <input type="text" id="manualNisInput" placeholder="Ketik NIS siswa lalu tekan Enter..." class="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-emerald-500">
+                                <button type="submit" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all">
+                                    Submit
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Scan Feedback Box -->
+                    <div id="scanResultCard" class="hidden bg-emerald-50 border-2 border-emerald-400 rounded-2xl p-5 text-center space-y-2 animate-bounce">
+                        <div class="w-10 h-10 mx-auto rounded-full bg-emerald-600 text-white flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <h4 id="scanResultName" class="font-bold text-slate-800 text-base">Nama Siswa</h4>
+                        <p id="scanResultDetails" class="text-xs text-emerald-800 font-medium">NIS: 1001 | Kelas: 7A | Jam: 07:30</p>
+                    </div>
+                </div>
+            `;
+
+            // Auto initialize camera scanner
+            setTimeout(() => {
+                startCameraScanner();
+            }, 300);
+        }
+
+        function playBeepSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.15);
+            } catch(e){}
+        }
+
+        function startCameraScanner() {
+            if (html5QrcodeScanner) {
+                try { html5QrcodeScanner.stop(); } catch(e){}
+            }
+
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+            html5QrcodeScanner.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                console.warn("Camera access error", err);
+                document.getElementById('reader').innerHTML = `
+                    <div class="p-6 text-center space-y-2">
+                        <i class="fa-solid fa-camera-retro text-2xl text-slate-400"></i>
+                        <p class="text-xs text-slate-300">Kamera tidak aktif atau tidak diizinkan. Gunakan input NIS manual di bawah.</p>
+                    </div>
+                `;
+            });
+        }
+
+        function stopCameraScanner() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    document.getElementById('reader').innerHTML = `<p class="p-6 text-slate-400">Kamera dimatikan.</p>`;
+                }).catch(e=>{});
+            }
+        }
+
+        function onScanSuccess(decodedText) {
+            processStudentAttendance(decodedText);
+        }
+
+        function onScanFailure(error) {
+            // silent scan search
+        }
+
+        function handleManualScan(e) {
+            e.preventDefault();
+            const input = document.getElementById('manualNisInput');
+            const nis = input.value.trim();
+            if (nis) {
+                processStudentAttendance(nis);
+                input.value = '';
+            }
+        }
+
+        function processStudentAttendance(nis) {
+            const student = appData.students.find(s => s.nis === nis);
+            if (!student) {
+                showToast(`Siswa dengan NIS ${nis} tidak ditemukan!`, 'error');
+                return;
+            }
+
+            const mapel = document.getElementById('scanMapelInput').value || 'Umum';
+            const teacherName = document.getElementById('scanTeacherInput').value || 'Guru';
+            const today = new Date().toISOString().split('T')[0];
+            const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+            // Check if already scanned today for this subject
+            const existingLog = appData.attendance.find(a => a.date === today && a.nis === nis && a.mapel === mapel);
+            if (existingLog) {
+                showToast(`${student.name} sudah melakukan presensi hari ini untuk mapel ${mapel}!`, 'info');
+                return;
+            }
+
+            // Record attendance
+            const newLog = {
+                id: String(Date.now()),
+                date: today,
+                nis: student.nis,
+                studentName: student.name,
+                class: student.class,
+                mapel: mapel,
+                teacherName: teacherName,
+                status: 'H',
+                time: nowTime
+            };
+
+            appData.attendance.unshift(newLog);
+            saveData();
+            playBeepSound();
+
+            // Display Feedback Card
+            const card = document.getElementById('scanResultCard');
+            document.getElementById('scanResultName').innerText = student.name;
+            document.getElementById('scanResultDetails').innerText = `NIS: ${student.nis} | Kelas: ${student.class} | Mapel: ${mapel} | Jam: ${nowTime}`;
+            card.classList.remove('hidden');
+
+            showToast(`BERHASIL: Presensi ${student.name} dicatat!`);
+        }
+
+        function renderRekapView(container) {
+            const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            const currentMonthIdx = new Date().getMonth();
+
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800">Rekap Presensi Siswa</h2>
+                            <p class="text-xs text-slate-500">Filter rekap per mata pelajaran, kelas, bulanan, dan ekspor ke PDF/Excel.</p>
+                        </div>
+
+                        <!-- Export Action Buttons -->
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button onclick="exportRekapExcel()" class="px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-xl text-xs font-semibold transition-all flex items-center gap-2">
+                                <i class="fa-solid fa-file-excel text-emerald-600 text-base"></i>
+                                <span>Unduh Excel</span>
+                            </button>
+                            <button onclick="exportRekapPDF()" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2">
+                                <i class="fa-solid fa-file-pdf text-base"></i>
+                                <span>Unduh PDF</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Mata Pelajaran</label>
+                            <select id="rekapFilterMapel" onchange="applyRekapFilter()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+                                <option value="">Semua Mapel</option>
+                                ${[...new Set(appData.teachers.map(t => t.mapel))].map(m => `<option value="${m}">${m}</option>`).join('')}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Kelas</label>
+                            <select id="rekapFilterKelas" onchange="applyRekapFilter()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+                                <option value="">Semua Kelas</option>
+                                <option value="7A">Kelas 7A</option>
+                                <option value="7B">Kelas 7B</option>
+                                <option value="8A">Kelas 8A</option>
+                                <option value="8B">Kelas 8B</option>
+                                <option value="9A">Kelas 9A</option>
+                                <option value="9B">Kelas 9B</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Bulan</label>
+                            <select id="rekapFilterBulan" onchange="applyRekapFilter()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+                                ${months.map((m, i) => `<option value="${i}" ${i === currentMonthIdx ? 'selected' : ''}>${m}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Recap Summary Table -->
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse" id="rekapTable">
+                                <thead>
+                                    <tr class="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                                        <th class="p-3.5">Tanggal</th>
+                                        <th class="p-3.5">NIS</th>
+                                        <th class="p-3.5">Nama Siswa</th>
+                                        <th class="p-3.5">Kelas</th>
+                                        <th class="p-3.5">Mapel</th>
+                                        <th class="p-3.5">Guru Mapel</th>
+                                        <th class="p-3.5 text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-xs" id="rekapTbody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            applyRekapFilter();
+        }
+
+        function getFilteredAttendance() {
+            const mapel = document.getElementById('rekapFilterMapel')?.value || '';
+            const kelas = document.getElementById('rekapFilterKelas')?.value || '';
+            const bulanIdx = parseInt(document.getElementById('rekapFilterBulan')?.value || new Date().getMonth());
+
+            return appData.attendance.filter(log => {
+                const logDate = new Date(log.date);
+                const matchMapel = !mapel || log.mapel === mapel;
+                const matchKelas = !kelas || log.class === kelas;
+                const matchBulan = logDate.getMonth() === bulanIdx;
+                return matchMapel && matchKelas && matchBulan;
+            });
+        }
+
+        function applyRekapFilter() {
+            const tbody = document.getElementById('rekapTbody');
+            if (!tbody) return;
+
+            const filtered = getFilteredAttendance();
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-6 text-center text-slate-400 italic">Tidak ada data presensi sesuai filter yang dipilih.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(log => `
+                <tr class="hover:bg-slate-50/80 transition-all">
+                    <td class="p-3.5 font-mono text-slate-600 text-[11px]">${log.date} ${log.time ? `(${log.time})` : ''}</td>
+                    <td class="p-3.5 font-mono font-medium text-slate-600">${log.nis}</td>
+                    <td class="p-3.5 font-bold text-slate-800">${log.studentName}</td>
+                    <td class="p-3.5"><span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold">${log.class}</span></td>
+                    <td class="p-3.5 text-slate-600 font-medium">${log.mapel}</td>
+                    <td class="p-3.5 text-slate-500">${log.teacherName}</td>
+                    <td class="p-3.5 text-center">
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${getStatusBadgeClass(log.status)}">
+                            ${getStatusLabel(log.status)}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getStatusBadgeClass(status) {
+            switch(status) {
+                case 'H': return 'bg-emerald-100 text-emerald-800 border border-emerald-300';
+                case 'I': return 'bg-blue-100 text-blue-800 border border-blue-300';
+                case 'S': return 'bg-amber-100 text-amber-800 border border-amber-300';
+                case 'A': return 'bg-rose-100 text-rose-800 border border-rose-300';
+                default: return 'bg-slate-100 text-slate-700';
+            }
+        }
+
+        function getStatusLabel(status) {
+            switch(status) {
+                case 'H': return 'Hadir';
+                case 'I': return 'Izin';
+                case 'S': return 'Sakit';
+                case 'A': return 'Alpa';
+                default: return status;
+            }
+        }
+
+        function exportRekapExcel() {
+            const data = getFilteredAttendance();
+            if (data.length === 0) {
+                showToast('Tidak ada data untuk diekspor!', 'error');
+                return;
+            }
+
+            const exportData = data.map(item => ({
+                "Tanggal": item.date,
+                "Waktu": item.time || '-',
+                "NIS": item.nis,
+                "Nama Siswa": item.studentName,
+                "Kelas": item.class,
+                "Mata Pelajaran": item.mapel,
+                "Guru Pengajar": item.teacherName,
+                "Status Kehadiran": getStatusLabel(item.status)
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Rekap Presensi");
+            XLSX.writeFile(wb, `Rekap_Presensi_MTs_Buninagara_${Date.now()}.xlsx`);
+            showToast('File Excel berhasil diunduh!');
+        }
+
+        function exportRekapPDF() {
+            const data = getFilteredAttendance();
+            if (data.length === 0) {
+                showToast('Tidak ada data untuk diekspor ke PDF!', 'error');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+            const mapel = document.getElementById('rekapFilterMapel')?.value || 'Semua Mata Pelajaran';
+            const kelas = document.getElementById('rekapFilterKelas')?.value || 'Semua Kelas';
+            const teacherName = currentUser ? currentUser.name : 'Guru Mata Pelajaran';
+
+            // Header Kop Surat
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(14);
+            doc.text("MADRASAH TSANAWIYAH (MTs) BUNINAGARA", 105, 15, { align: "center" });
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text("REKAPITULASI PRESENSI KEHADIRAN SISWA", 105, 21, { align: "center" });
+            doc.text(`Mata Pelajaran: ${mapel} | Kelas: ${kelas}`, 105, 26, { align: "center" });
+            
+            doc.setLineWidth(0.5);
+            doc.line(15, 29, 195, 29);
+
+            // Table Body
+            const tableRows = data.map((item, idx) => [
+                idx + 1,
+                item.date,
+                item.nis,
+                item.studentName,
+                item.class,
+                item.mapel,
+                getStatusLabel(item.status)
+            ]);
+
+            doc.autoTable({
+                startY: 33,
+                head: [['No', 'Tanggal', 'NIS', 'Nama Siswa', 'Kelas', 'Mapel', 'Status']],
+                body: tableRows,
+                styles: { fontSize: 8, cellPadding: 2 },
+                headStyles: { fillColor: [22, 163, 74], textColor: 255 },
+                theme: 'grid'
+            });
+
+            const finalY = doc.lastAutoTable.finalY + 15;
+
+            // Signature Section
+            const todayStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            
+            doc.setFontSize(9);
+            doc.text(`Buninagara, ${todayStr}`, 140, finalY);
+            doc.text("Guru Mata Pelajaran,", 140, finalY + 5);
+            
+            doc.text("( ___________________________ )", 140, finalY + 28);
+            doc.text(`Nama: ${teacherName}`, 140, finalY + 33);
+
+            doc.save(`Rekap_Presensi_MTs_Buninagara_${Date.now()}.pdf`);
+            showToast('Dokumen PDF rekap presensi berhasil diunduh!');
+        }
+
+        function renderPengaturanView(container) {
+            container.innerHTML = `
+                <div class="space-y-6 max-w-2xl mx-auto">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Pengaturan Aplikasi & Akun</h2>
+                        <p class="text-xs text-slate-500">Atur logo madrasah dan kredensial kata sandi.</p>
+                    </div>
+
+                    <!-- Logo Settings Card -->
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-image text-emerald-600"></i>
+                            Ganti Logo Madrasah (JPG / PNG)
+                        </h3>
+
+                        <div class="flex items-center gap-6">
+                            <div class="w-20 h-20 rounded-2xl bg-slate-50 border-2 border-slate-200 p-2 flex items-center justify-center shrink-0 overflow-hidden">
+                                <img id="previewLogoSetting" src="${appData.logo}" alt="Logo preview" class="w-full h-full object-contain">
+                            </div>
+
+                            <div class="space-y-2 flex-1">
+                                <p class="text-xs text-slate-600">Unggah berkas gambar logo baru untuk mengganti logo di seluruh sistem dan berkas rekap PDF.</p>
+                                <input type="file" id="logoFileInput" accept="image/png, image/jpeg" class="hidden" onchange="handleLogoUpload(event)">
+                                <button onclick="document.getElementById('logoFileInput').click()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs shadow-sm flex items-center gap-2">
+                                    <i class="fa-solid fa-upload"></i> Unggah Logo Baru
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Password Settings Card -->
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-key text-emerald-600"></i>
+                            Ganti Kata Sandi Akun (${currentUser ? currentUser.name : ''})
+                        </h3>
+
+                        <form onsubmit="handleChangePassword(event)" class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Password Baru</label>
+                                <input type="password" id="newPasswordInput" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500" placeholder="Masukkan password baru">
+                            </div>
+
+                            <div class="pt-2 flex justify-end">
+                                <button type="submit" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl text-xs shadow-md">
+                                    Simpan Password Baru
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleLogoUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.type !== 'image/png' && file.type !== 'image/jpeg') {
+                showToast('Hanya format JPG atau PNG yang diperbolehkan!', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (evt) {
+                const base64 = evt.target.result;
+                appData.logo = base64;
+                saveData();
+
+                document.getElementById('previewLogoSetting').src = base64;
+                document.getElementById('loginLogo').src = base64;
+                document.getElementById('appLogoSidebar').src = base64;
+                document.getElementById('appLogoHeader').src = base64;
+
+                showToast('Logo madrasah berhasil diperbarui!');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleChangePassword(e) {
+            e.preventDefault();
+            const newPass = document.getElementById('newPasswordInput').value.trim();
+
+            if (currentUser.role === 'guru') {
+                const acc = appData.accounts.find(a => a.username === currentUser.username);
+                if (acc) {
+                    acc.password = newPass;
+                    saveData();
+                    showToast('Password guru berhasil diperbarui!');
+                }
+            } else {
+                showToast('Password admin diperbarui untuk sesi ini');
+            }
+            document.getElementById('newPasswordInput').value = '';
+        }
+
+        function openModal() {
+            document.getElementById('modalOverlay').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.add('hidden');
+        }
+
+        // Initialize state on page load
+        window.onload = function() {
+            loadSavedData();
+        };
+    </script>
+</body>
+</html>
